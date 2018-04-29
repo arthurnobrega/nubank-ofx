@@ -2,7 +2,7 @@ import redis from 'redis'
 import { promisify } from 'util'
 import yargs from 'yargs'
 import pTry from 'p-try';
-import createNuBank from './nubank'
+import createNuBank from 'nubank'
 import generateOfxFile from './ofx'
 
 const client = redis.createClient()
