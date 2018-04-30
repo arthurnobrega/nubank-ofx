@@ -2,7 +2,7 @@
   "parser": "babel-eslint",
   "extends": "airbnb-base",
   "plugins": [
-    "class-property",
+    "babel",
     "jest"
   ],
   "rules": {
