@@ -1,27 +1,31 @@
-import fs from 'fs';
-import sh from 'shorthash';
+import fs from 'fs'
+import sh from 'shorthash'
+import { format, isWeekend } from 'date-fns'
+import { nextMonday } from '../helpers/date'
 
 function ofxItem(itemData, detailed) {
   const {
-      id,
-      time,
-      title,
-      description,
-      amount,
-  } = itemData;
-  const shortid = sh.unique(id);
+    id,
+    time,
+    title,
+    description,
+    amount,
+  } = itemData
+  const shortid = sh.unique(id)
   const memo = (
-      detailed ? `#${shortid} - ${description || title}` : (description || title)
-  );
+    detailed ? `#${shortid} - ${description || title}` : (description || title)
+  )
+  const fixedDate = isWeekend(time) ? nextMonday(time) : time
+
   return `
 <STMTTRN>
 <TRNTYPE>DEBIT</TRNTYPE>
-<DTPOSTED>${time.replace(/[-T:Z]/g, '').substring(0, 14)}[-3:GMT]</DTPOSTED>
-<TRNAMT>${(amount/100) * -1}</TRNAMT>
+<DTPOSTED>${format(fixedDate, 'YYYYMMDDHHmmss')}[0:GMT]</DTPOSTED>
+<TRNAMT>${(amount / 100) * -1}</TRNAMT>
 <FITID>${id}</FITID>
 <MEMO>${memo}</MEMO>
 </STMTTRN>
-`;
+`
 }
 
 function generateOfx(transactions, detailed) {
@@ -70,15 +74,15 @@ ${transactions.map(i => ofxItem(i, detailed)).join('\n')}
 </CCSTMTTRNRS>
 </CREDITCARDMSGSRSV1>
 </OFX>
-`;
+`
 }
 
 export default async function generateOfxFile(transactions) {
-  const data = generateOfx(transactions, true)
-  const filePath = `ynab-sync-nubank.ofx`
+  const filePath = 'ynab-sync-nubank.ofx'
 
   try {
-    fs.writeFileSync(filePath, data);
+    const data = generateOfx(transactions, true)
+    fs.writeFileSync(filePath, data)
   } catch (e) {
     console.log(e)
   }
