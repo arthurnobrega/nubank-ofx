@@ -1,4 +1,5 @@
 import fs from 'fs'
+import ofx from 'ofx'
 import { format, isWeekend } from 'date-fns'
 import { nextMonday } from '../helpers/date'
 
@@ -10,67 +11,61 @@ function ofxItem(itemData) {
     description,
     amount,
   } = itemData
-  const memo = description || title
   const fixedDate = isWeekend(time) ? nextMonday(time) : time
 
-  return `
-<STMTTRN>
-<TRNTYPE>DEBIT</TRNTYPE>
-<DTPOSTED>${format(fixedDate, 'YYYYMMDDHHmmss')}[0:GMT]</DTPOSTED>
-<TRNAMT>${(amount / 100) * -1}</TRNAMT>
-<FITID>${id}</FITID>
-<MEMO>${memo}</MEMO>
-</STMTTRN>
-`
+  return {
+    STMTTRN: {
+      TRNTYPE: 'DEBIT',
+      DTPOSTED: `${format(fixedDate, 'YYYYMMDDHHmmss')}[0:GMT]`,
+      TRNAMT: (amount / 100) * -1,
+      FITID: id,
+      MEMO: description || title,
+    },
+  }
 }
 
 function generateOfx(transactions) {
-  return `
-OFXHEADER:100
-DATA:OFXSGML
-VERSION:102
-SECURITY:NONE
-ENCODING:USASCII
-CHARSET:1252
-COMPRESSION:NONE
-OLDFILEUID:NONE
-NEWFILEUID:NONE
+  const header = {
+    OFXHEADER: '100',
+    DATA: 'OFXSGML',
+    VERSION: '102',
+    SECURITY: 'NONE',
+    ENCODING: 'USASCII',
+    CHARSET: '1252',
+    COMPRESSION: 'NONE',
+    OLDFILEUID: 'NONE',
+    NEWFILEUID: 'NONE',
+  }
 
-<OFX>
-<SIGNONMSGSRSV1>
-<SONRS>
-<STATUS>
-<CODE>0</CODE>
-<SEVERITY>INFO</SEVERITY>
-</STATUS>
+  const body = {
+    SIGNONMSGSRSV1: {
+      SONRS: {
+        STATUS: {
+          CODE: '0',
+          SEVERITY: 'INFO',
+        },
+        LANGUAGE: 'POR',
+      },
+    },
+    CREDITCARDMSGSRSV1: {
+      CCSTMTTRNRS: {
+        TRNUID: '1001',
+        STATUS: {
+          CODE: '0',
+          SEVERITY: 'INFO',
+        },
+        CCSTMTRS: {
+          CURDEF: 'BRL',
+          CCACCTFROM: {
+            ACCTID: 'ynab-sync',
+          },
+          BANKTRANLIST: transactions.map(i => ofxItem(i)),
+        },
+      },
+    },
+  }
 
-<LANGUAGE>POR
-</SONRS>
-</SIGNONMSGSRSV1>
-
-<CREDITCARDMSGSRSV1>
-<CCSTMTTRNRS>
-<TRNUID>1001</TRNUID>
-<STATUS>
-<CODE>0</CODE>
-<SEVERITY>INFO</SEVERITY>
-</STATUS>
-
-<CCSTMTRS>
-<CURDEF>BRL</CURDEF>
-<CCACCTFROM>
-<ACCTID>ynab-sync</ACCTID>
-</CCACCTFROM>
-
-<BANKTRANLIST>
-${transactions.map(i => ofxItem(i)).join('\n')}
-</BANKTRANLIST>
-
-</CCSTMTRS>
-</CCSTMTTRNRS>
-</CREDITCARDMSGSRSV1>
-</OFX>
-`
+  return ofx.serialize(header, body)
 }
 
 export default async function generateOfxFile(transactions) {
