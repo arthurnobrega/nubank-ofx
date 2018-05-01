@@ -16,7 +16,7 @@ yarn install
 Just run the command bellow to retrieve your NuBank information:
 
 ```sh
-yarn start <NUBANK_LOGIN> <NUBANK_PASSWORD>
+yarn start --username <NUBANK_LOGIN>
 ```
 
 ## Contributing

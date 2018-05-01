@@ -1,6 +1,6 @@
 {
   "name": "sync-ynab",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Sync Banco do Brasil and Nubank with YNAB",
   "main": "index.js",
   "author": "Arthur Nobrega",
@@ -17,11 +17,12 @@
     ]
   },
   "dependencies": {
+    "chalk": "^2.4.1",
     "date-fns": "^1.29.0",
     "inquirer": "^5.2.0",
+    "lowdb": "^1.0.0",
     "nubank-api": "https://github.com/arthurnobrega/nubank-api.git",
     "p-try": "^1.0.0",
-    "redis": "2.8.0",
     "shorthash": "^0.0.2",
     "yargs": "^11.0.0"
   },

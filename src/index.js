@@ -1,54 +1,17 @@
-import redis from 'redis'
-import { promisify } from 'util'
+import lowdb from 'lowdb'
+import FileSync from 'lowdb/adapters/FileSync'
 import yargs from 'yargs'
 import pTry from 'p-try'
 import createNuBank from 'nubank-api'
 import inquirer from 'inquirer';
+import chalk from 'chalk'
 import generateOfxFile from './ofx'
 
-const client = redis.createClient()
-const getAsync = promisify(client.get).bind(client)
+const adapter = new FileSync('db.json')
+const db = lowdb(adapter)
 
-client.on('error', (err) => {
-  console.log(`Error ${err}`)
-})
-
-async function askForPassword(username) {
-  const { password } = await inquirer.prompt([{
-    type: 'password',
-    name: 'password',
-    message: `Please enter a password for user "${username}"`,
-  }])
-  return password
-}
-
-async function main(options) {
-  const { username } = options
-  const ynabNubankTokenKey = `ynab-nubank-token:${username}`
-
-  const NuBank = createNuBank()
-
-  let loginToken = null
-  const redisToken = await getAsync(ynabNubankTokenKey)
-
-  try {
-    if (redisToken) {
-      loginToken = JSON.parse(redisToken)
-      NuBank.setLoginToken(loginToken)
-    } else {
-      const password = await askForPassword(username)
-      loginToken = await NuBank.getLoginToken({ login: username, password })
-      client.set(ynabNubankTokenKey, JSON.stringify(loginToken))
-    }
-
-    const wholeFeed = await NuBank.getWholeFeed()
-    generateOfxFile(wholeFeed.events)
-  } catch (e) {
-    console.log('Error: ', e.toString())
-  }
-
-  client.quit()
-}
+db.defaults({ tokens: [] })
+  .write()
 
 function initializeYargs() {
   const onlyCommand = {
@@ -58,7 +21,7 @@ function initializeYargs() {
       .option('username', {
         type: 'string',
         alias: 'u',
-        description: 'Username',
+        description: 'Nubank username',
         demandOption: true,
       })
     ),
@@ -70,6 +33,60 @@ function initializeYargs() {
     .help()
     .version()
     .argv
+}
+
+async function askForPassword(username) {
+  const { password } = await inquirer.prompt([{
+    type: 'password',
+    name: 'password',
+    message: `Please enter a password for Nubank username "${username}"`,
+  }])
+  return password
+}
+
+async function main(options) {
+  const { username } = options
+  const NuBank = createNuBank()
+
+  try {
+    let record = db.get('tokens')
+      .find({ username })
+      .value()
+
+    // Deal with expired token
+    if (record && (new Date(record.token.refresh_before) < new Date())) {
+      db.get('tokens')
+        .remove({ username })
+        .write()
+
+      record = undefined
+    }
+
+    // Request new token
+    if (!record) {
+      const password = await askForPassword(username)
+      const token = await NuBank.getLoginToken({ login: username, password })
+
+      if (token.error) {
+        throw Error(token.error)
+      }
+
+      db.get('tokens')
+        .push({ username, token })
+        .write()
+
+      record = db.get('tokens')
+        .find({ username })
+        .value()
+    }
+
+    NuBank.setLoginToken(record.token)
+
+    const wholeFeed = await NuBank.getWholeFeed()
+    generateOfxFile(wholeFeed.events)
+  } catch (e) {
+    console.log(chalk.red(e.toString()))
+  }
 }
 
 initializeYargs()
