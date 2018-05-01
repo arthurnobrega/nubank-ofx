@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "date-fns": "^1.29.0",
+    "inquirer": "^5.2.0",
     "nubank-api": "https://github.com/arthurnobrega/nubank-api.git",
     "p-try": "^1.0.0",
     "redis": "2.8.0",
