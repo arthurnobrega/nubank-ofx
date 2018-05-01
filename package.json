@@ -1,6 +1,6 @@
 {
   "name": "sync-ynab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sync Banco do Brasil and Nubank with YNAB",
   "main": "index.js",
   "author": "Arthur Nobrega",

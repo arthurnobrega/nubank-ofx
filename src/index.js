@@ -37,7 +37,7 @@ async function main(options) {
       NuBank.setLoginToken(loginToken)
     } else {
       const password = await askForPassword(username)
-      loginToken = await NuBank.getLoginToken({ username, password })
+      loginToken = await NuBank.getLoginToken({ login: username, password })
       client.set(ynabNubankTokenKey, JSON.stringify(loginToken))
     }
 
