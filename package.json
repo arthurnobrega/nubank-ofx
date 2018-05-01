@@ -23,7 +23,6 @@
     "lowdb": "^1.0.0",
     "nubank-api": "https://github.com/arthurnobrega/nubank-api.git",
     "p-try": "^1.0.0",
-    "shorthash": "^0.0.2",
     "yargs": "^11.0.0"
   },
   "devDependencies": {

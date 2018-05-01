@@ -1,9 +1,8 @@
 import fs from 'fs'
-import sh from 'shorthash'
 import { format, isWeekend } from 'date-fns'
 import { nextMonday } from '../helpers/date'
 
-function ofxItem(itemData, detailed) {
+function ofxItem(itemData) {
   const {
     id,
     time,
@@ -11,10 +10,7 @@ function ofxItem(itemData, detailed) {
     description,
     amount,
   } = itemData
-  const shortid = sh.unique(id)
-  const memo = (
-    detailed ? `#${shortid} - ${description || title}` : (description || title)
-  )
+  const memo = description || title
   const fixedDate = isWeekend(time) ? nextMonday(time) : time
 
   return `
@@ -28,7 +24,7 @@ function ofxItem(itemData, detailed) {
 `
 }
 
-function generateOfx(transactions, detailed) {
+function generateOfx(transactions) {
   return `
 OFXHEADER:100
 DATA:OFXSGML
@@ -44,8 +40,8 @@ NEWFILEUID:NONE
 <SIGNONMSGSRSV1>
 <SONRS>
 <STATUS>
-<CODE>0
-<SEVERITY>INFO
+<CODE>0</CODE>
+<SEVERITY>INFO</SEVERITY>
 </STATUS>
 
 <LANGUAGE>POR
@@ -54,20 +50,20 @@ NEWFILEUID:NONE
 
 <CREDITCARDMSGSRSV1>
 <CCSTMTTRNRS>
-<TRNUID>1001
+<TRNUID>1001</TRNUID>
 <STATUS>
-<CODE>0
-<SEVERITY>INFO
+<CODE>0</CODE>
+<SEVERITY>INFO</SEVERITY>
 </STATUS>
 
 <CCSTMTRS>
-<CURDEF>BRL
+<CURDEF>BRL</CURDEF>
 <CCACCTFROM>
-<ACCTID>nubank-ofx-preview
+<ACCTID>ynab-sync</ACCTID>
 </CCACCTFROM>
 
 <BANKTRANLIST>
-${transactions.map(i => ofxItem(i, detailed)).join('\n')}
+${transactions.map(i => ofxItem(i)).join('\n')}
 </BANKTRANLIST>
 
 </CCSTMTRS>
@@ -81,7 +77,7 @@ export default async function generateOfxFile(transactions) {
   const filePath = 'ynab-sync-nubank.ofx'
 
   try {
-    const data = generateOfx(transactions, true)
+    const data = generateOfx(transactions)
     fs.writeFileSync(filePath, data)
   } catch (e) {
     console.log(e)
