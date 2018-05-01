@@ -3,7 +3,7 @@ import ofx from 'ofx'
 import { format, isWeekend } from 'date-fns'
 import { nextMonday } from '../helpers/date'
 
-function ofxItem(itemData) {
+function buildOfxTransaction(itemData) {
   const {
     id,
     time,
@@ -24,7 +24,7 @@ function ofxItem(itemData) {
   }
 }
 
-function generateOfx(transactions) {
+function getOfxString(transactions) {
   const header = {
     OFXHEADER: '100',
     DATA: 'OFXSGML',
@@ -59,7 +59,7 @@ function generateOfx(transactions) {
           CCACCTFROM: {
             ACCTID: 'ynab-sync',
           },
-          BANKTRANLIST: transactions.map(i => ofxItem(i)),
+          BANKTRANLIST: transactions.map(i => buildOfxTransaction(i)),
         },
       },
     },
@@ -68,15 +68,9 @@ function generateOfx(transactions) {
   return ofx.serialize(header, body)
 }
 
-export default async function generateOfxFile(transactions) {
-  const filePath = 'ynab-sync-nubank.ofx'
+export default function generateOfxFile(path, transactions) {
+  const data = getOfxString(transactions)
+  fs.writeFileSync(path, data)
 
-  try {
-    const data = generateOfx(transactions)
-    fs.writeFileSync(filePath, data)
-  } catch (e) {
-    console.log(e)
-  }
-
-  return filePath
+  return true
 }

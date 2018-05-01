@@ -23,7 +23,13 @@ async function askForPassword(username) {
 }
 
 async function main(options) {
-  const { username, period } = options
+  const {
+    username,
+    period,
+    verbose,
+    ofxOutput,
+  } = options
+
   const NuBank = createNuBank()
 
   try {
@@ -66,9 +72,23 @@ async function main(options) {
       ? transactions.filter(t => t.time.indexOf(period) !== -1)
       : transactions
 
-    generateOfxFile(filteredTransactions)
+    if (verbose) {
+      console.log(filteredTransactions)
+    }
+
+    if (ofxOutput) {
+      generateOfxFile(ofxOutput, filteredTransactions)
+
+      if (verbose) {
+        console.log(chalk.green(`Ofx file created at ${ofxOutput}`))
+      }
+    }
+
+    return filteredTransactions
   } catch (e) {
     console.log(chalk.red(e.toString()))
+
+    return null
   }
 }
 
@@ -83,11 +103,20 @@ function initializeYargs() {
         description: 'Nubank username',
         demandOption: true,
       })
+      .option('ofxOutput', {
+        type: 'string',
+        alias: 'o',
+        description: 'Path to create ofx file',
+        demandOption: true,
+      })
       .option('period', {
         type: 'string',
         alias: 'p',
         description: 'Transactions period in format YYYY-MM (ex. 2018-01)',
-        demandOption: true,
+      })
+      .option('verbose', {
+        type: 'boolean',
+        description: 'Log transactions on console',
       })
     ),
     handler: argv => pTry(() => main(argv))
@@ -97,6 +126,7 @@ function initializeYargs() {
   yargs.command(onlyCommand)
     .help()
     .version()
+    .locale('en')
     .argv
 }
 
