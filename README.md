@@ -1,5 +1,5 @@
-# ynab-sync
-> Sync YNAB with Nubank and Banco do Brasil
+# nubank-ofx
+> Create OFX from NuBank transactions
 
 ## Requirements
 
