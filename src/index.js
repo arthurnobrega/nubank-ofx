@@ -13,28 +13,6 @@ const db = lowdb(adapter)
 db.defaults({ tokens: [] })
   .write()
 
-function initializeYargs() {
-  const onlyCommand = {
-    command: '$0',
-
-    builder: _yargs => (_yargs
-      .option('username', {
-        type: 'string',
-        alias: 'u',
-        description: 'Nubank username',
-        demandOption: true,
-      })
-    ),
-    handler: argv => pTry(() => main(argv))
-      .then(exitCode => process.exit(exitCode || 0), () => process.exit(1)),
-  }
-
-  yargs.command(onlyCommand)
-    .help()
-    .version()
-    .argv
-}
-
 async function askForPassword(username) {
   const { password } = await inquirer.prompt([{
     type: 'password',
@@ -45,7 +23,7 @@ async function askForPassword(username) {
 }
 
 async function main(options) {
-  const { username } = options
+  const { username, period } = options
   const NuBank = createNuBank()
 
   try {
@@ -82,11 +60,44 @@ async function main(options) {
 
     NuBank.setLoginToken(record.token)
 
-    const wholeFeed = await NuBank.getWholeFeed()
-    generateOfxFile(wholeFeed.events)
+    const { events: transactions } = await NuBank.getWholeFeed()
+
+    const filteredTransactions = period
+      ? transactions.filter(t => t.time.indexOf(period) !== -1)
+      : transactions
+
+    generateOfxFile(filteredTransactions)
   } catch (e) {
     console.log(chalk.red(e.toString()))
   }
+}
+
+function initializeYargs() {
+  const onlyCommand = {
+    command: '$0',
+
+    builder: _yargs => (_yargs
+      .option('username', {
+        type: 'string',
+        alias: 'u',
+        description: 'Nubank username',
+        demandOption: true,
+      })
+      .option('period', {
+        type: 'string',
+        alias: 'p',
+        description: 'Transactions period in format YYYY-MM (ex. 2018-01)',
+        demandOption: true,
+      })
+    ),
+    handler: argv => pTry(() => main(argv))
+      .then(exitCode => process.exit(exitCode || 0), () => process.exit(1)),
+  }
+
+  yargs.command(onlyCommand)
+    .help()
+    .version()
+    .argv
 }
 
 initializeYargs()
