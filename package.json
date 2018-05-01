@@ -1,7 +1,7 @@
 {
   "name": "sync-ynab",
   "version": "1.1.0",
-  "description": "Sync Banco do Brasil and Nubank with YNAB",
+  "description": "Create OFX from NuBank transactions",
   "main": "index.js",
   "author": "Arthur Nobrega",
   "license": "MIT",
